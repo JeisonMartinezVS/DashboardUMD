@@ -19,7 +19,7 @@ export default function App() {
   const [sales, setSales] = useState([]);
 
   useEffect(() => {
-    axios.get("https://dashboard-umd-backend.onrender.com/api/sales").then((res) => setSales(res.data));
+    axios.get("https://dashboardumd.onrender.com/api/sales").then((res) => setSales(res.data));
   }, []);
 
   const barData = {
