@@ -8,4 +8,4 @@ const GeografiaSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("Geografia", GeografiaSchema);
+export default mongoose.model("Geografia", GeografiaSchema, "Geografia");

@@ -14,4 +14,4 @@ const OrganizacionSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("Organizacion", OrganizacionSchema);
+export default mongoose.model("Organizacion", OrganizacionSchema, "Organizacion");

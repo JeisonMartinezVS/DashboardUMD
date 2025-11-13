@@ -10,4 +10,4 @@ const ServicioSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("Servicio", ServicioSchema);
+export default mongoose.model("Servicio", ServicioSchema, "Servicio");
