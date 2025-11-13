@@ -1,61 +1,42 @@
-// frontend/src/App.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Bar, Pie } from "react-chartjs-2";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+import { getContratos, getServicios } from "./api.js";
+import ChartCard from "./components/ChartCard.jsx";
 
 export default function App() {
-  const [sales, setSales] = useState([]);
+  const [contratos, setContratos] = useState([]);
+  const [servicios, setServicios] = useState([]);
 
   useEffect(() => {
-    axios.get("https://dashboardumd.onrender.com/api/sales").then((res) => setSales(res.data));
+    getContratos().then((res) => setContratos(res.data));
+    getServicios().then((res) => setServicios(res.data));
   }, []);
 
-  const barData = {
-    labels: sales.map((s) => s.month),
-    datasets: [
-      {
-        label: "Ventas por mes",
-        data: sales.map((s) => s.quantity),
-        backgroundColor: "rgba(54, 162, 235, 0.5)",
-      },
-    ],
-  };
+  const contratosPorCliente = contratos.map((c) => ({
+    cliente: c.Contrato.Cliente,
+    valor: c.Contrato.ValorTotal,
+  }));
 
-  const pieData = {
-    labels: sales.map((s) => s.product),
-    datasets: [
-      {
-        label: "Ventas por producto",
-        data: sales.map((s) => s.quantity),
-        backgroundColor: ["#36A2EB", "#FF6384", "#FFCE56"],
-      },
-    ],
-  };
+  const serviciosPorTipo = servicios.map((s) => ({
+    tipo: s.Servicio.TipoServicio,
+    precio: s.Servicio.Precio,
+  }));
 
   return (
-    <div style={{ textAlign: "center", padding: "40px" }}>
-      <h1>📊 Dashboard de Ventas NoSQL</h1>
-      <div style={{ display: "flex", justifyContent: "center", gap: "40px", marginTop: "40px" }}>
-        <div style={{ width: "500px" }}>
-          <h3>Ventas por Mes</h3>
-          <Bar data={barData} />
-        </div>
-        <div style={{ width: "400px" }}>
-          <h3>Distribución por Producto</h3>
-          <Pie data={pieData} />
-        </div>
+    <div style={{ textAlign: "center", padding: 40 }}>
+      <h1>📊 Dashboard SoftUMD</h1>
+
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap" }}>
+        <ChartCard
+          title="Valor por Cliente"
+          labels={contratosPorCliente.map((c) => c.cliente)}
+          data={contratosPorCliente.map((c) => c.valor)}
+        />
+        <ChartCard
+          title="Precios por Tipo de Servicio"
+          type="pie"
+          labels={serviciosPorTipo.map((s) => s.tipo)}
+          data={serviciosPorTipo.map((s) => s.precio)}
+        />
       </div>
     </div>
   );
