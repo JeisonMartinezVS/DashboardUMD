@@ -15,19 +15,38 @@ import { Bar, Pie } from "react-chartjs-2";
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
 export default function App() {
-  const [contratos, setContratos] = useState([]);
   const [tab, setTab] = useState("contratos");
-  const [consulta, setConsulta] = useState("servicios");
+  const [contratos, setContratos] = useState([]);
+  const [servicios, setServicios] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [vendedores, setVendedores] = useState([]);
+  const [vendedorSel, setVendedorSel] = useState(null);
+  const [vendedorData, setVendedorData] = useState(null);
 
-  // 🔹 Cargar datos
   useEffect(() => {
-    axios
-      .get("https://dashboardumd.onrender.com/api/contratos")
-      .then((res) => setContratos(res.data))
-      .catch((err) => console.error("Error al cargar contratos", err));
+    axios.get("https://dashboardumd.onrender.com/api/contratos").then((res) => {
+      setContratos(res.data);
+      const nombres = [...new Set(res.data.map((c) => c.Contrato?.Vendedor))];
+      setVendedores(nombres);
+    });
   }, []);
 
-  // 🔹 Normalización
+  // Cargar análisis general
+  useEffect(() => {
+    axios.get("https://dashboardumd.onrender.com/api/analisis/servicios").then((res) => setServicios(res.data));
+    axios.get("https://dashboardumd.onrender.com/api/analisis/clientes").then((res) => setClientes(res.data));
+  }, []);
+
+  // Consultar vendedor específico
+  useEffect(() => {
+    if (vendedorSel) {
+      axios
+        .get(`https://dashboardumd.onrender.com/api/analisis/vendedor/${vendedorSel}`)
+        .then((res) => setVendedorData(res.data));
+    }
+  }, [vendedorSel]);
+
+  // === Datos procesados ===
   const contratosData = contratos.map((c) => ({
     id: c._id,
     cliente: c.Contrato?.Cliente || "—",
@@ -36,23 +55,21 @@ export default function App() {
     vendedor: c.Contrato?.Vendedor || "—",
     fechaInicio: c.Contrato?.FechaInicio || null,
     fechaFin: c.Contrato?.FechaFin || null,
-    detalles: c.Contrato?.Detalles || [],
   }));
 
-  // 🔹 Métricas generales
   const totalContratos = contratosData.length;
   const contratosActivos = contratosData.filter((c) => c.estado === "Activo").length;
   const contratosFinalizados = contratosData.filter((c) => c.estado === "Finalizado").length;
   const valorTotal = contratosData.reduce((acc, c) => acc + (c.valor || 0), 0);
 
-  // 🔹 Datos para gráficas principales
+  // === Datos para gráficos ===
   const barData = {
     labels: contratosData.map((c) => c.cliente),
     datasets: [
       {
-        label: "Valor del Contrato ($)",
+        label: "Valor del contrato ($)",
         data: contratosData.map((c) => c.valor),
-        backgroundColor: "rgba(54, 162, 235, 0.6)",
+        backgroundColor: "rgba(37, 99, 235, 0.6)",
       },
     ],
   };
@@ -62,62 +79,39 @@ export default function App() {
     datasets: [
       {
         data: [contratosActivos, contratosFinalizados],
-        backgroundColor: ["#36A2EB", "#FF6384"],
+        backgroundColor: ["#2563eb", "#9ca3af"],
       },
     ],
   };
 
-  // === 🔍 CONSULTAS DINÁMICAS ===
-  let consultaData = { labels: [], datasets: [] };
+  const serviciosData = {
+    labels: servicios.map((s) => s.servicio),
+    datasets: [
+      {
+        label: "Cantidad contratada",
+        data: servicios.map((s) => s.cantidad),
+        backgroundColor: "rgba(16, 185, 129, 0.6)",
+      },
+    ],
+  };
 
-  if (consulta === "servicios") {
-    // Agrupar servicios y contar cuántas veces aparecen
-    const servicios = {};
-    contratosData.forEach((c) =>
-      c.detalles.forEach((d) => {
-        servicios[d.Servicio] = (servicios[d.Servicio] || 0) + d.Cantidad;
-      })
-    );
+  const clientesData = {
+    labels: clientes.map((c) => c.cliente),
+    datasets: [
+      {
+        data: clientes.map((c) => c.contratos),
+        backgroundColor: ["#3b82f6", "#22c55e", "#facc15", "#ef4444", "#8b5cf6"],
+      },
+    ],
+  };
 
-    consultaData = {
-      labels: Object.keys(servicios),
-      datasets: [
-        {
-          label: "Servicios más contratados",
-          data: Object.values(servicios),
-          backgroundColor: ["#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444"],
-        },
-      ],
-    };
-  }
-
-  if (consulta === "vendedores") {
-    // Agrupar por vendedor y sumar el valor total de sus contratos
-    const vendedores = {};
-    contratosData.forEach((c) => {
-      vendedores[c.vendedor] = (vendedores[c.vendedor] || 0) + c.valor;
-    });
-
-    consultaData = {
-      labels: Object.keys(vendedores),
-      datasets: [
-        {
-          label: "Valor total vendido ($)",
-          data: Object.values(vendedores),
-          backgroundColor: ["#10B981", "#3B82F6", "#F59E0B"],
-        },
-      ],
-    };
-  }
-
-  // ============================ UI ============================
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 p-8">
-      <h1 className="text-3xl font-bold text-center mb-8">📊 Dashboard Administrativo — UMD</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">Dashboard UNIMINUTO</h1>
 
       {/* Tabs */}
       <div className="flex justify-center gap-4 mb-10">
-        {["contratos", "consultas"].map((t) => (
+        {["contratos", "analisis"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -125,11 +119,7 @@ export default function App() {
               tab === t ? "bg-blue-600 text-white" : "bg-white hover:bg-blue-50"
             }`}
           >
-            {t === "contratos"
-              ? "📑 Contratos"
-              : t === "resumen"
-              ? "📈 Resumen"
-              : "🔍 Consultas"}
+            {t === "contratos" ? "Contratos" : "Análisis"}
           </button>
         ))}
       </div>
@@ -153,77 +143,45 @@ export default function App() {
               <Pie data={pieData} />
             </Card>
           </div>
-
-          <Card title="📋 Detalle de Contratos" w="w-full mt-12 overflow-x-auto">
-            <table className="min-w-full text-left border border-gray-200">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-3">Cliente</th>
-                  <th className="p-3">Vendedor</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3">Valor</th>
-                  <th className="p-3">Inicio</th>
-                  <th className="p-3">Fin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contratosData.map((c) => (
-                  <tr key={c.id} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{c.cliente}</td>
-                    <td className="p-3">{c.vendedor}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-1 rounded-md text-sm font-semibold ${
-                          c.estado === "Activo"
-                            ? "bg-green-100 text-green-700"
-                            : c.estado === "Finalizado"
-                            ? "bg-gray-100 text-gray-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {c.estado}
-                      </span>
-                    </td>
-                    <td className="p-3">${c.valor.toLocaleString()}</td>
-                    <td className="p-3">
-                      {c.fechaInicio ? new Date(c.fechaInicio).toLocaleDateString() : "—"}
-                    </td>
-                    <td className="p-3">
-                      {c.fechaFin ? new Date(c.fechaFin).toLocaleDateString() : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
         </>
       )}
 
-      {/* === Sección Consultas === */}
-      {tab === "consultas" && (
-        <div className="flex flex-col items-center gap-6">
-          <Card title="🔎 Consultas Interactivas" w="w-full lg:w-[60%]">
-            <div className="flex justify-center mb-6">
-              <select
-                className="p-3 border rounded-lg shadow-sm"
-                value={consulta}
-                onChange={(e) => setConsulta(e.target.value)}
-              >
-                <option value="servicios">Servicios más contratados</option>
-                <option value="vendedores">Vendedores con más valor</option>
-              </select>
-            </div>
+      {/* === Sección Análisis === */}
+      {tab === "analisis" && (
+        <>
+          <div className="flex flex-col lg:flex-row justify-center gap-10 mb-12">
+            <Card title="Servicios más contratados" w="w-[90%] lg:w-[45%]">
+              <Bar data={serviciosData} />
+            </Card>
 
-            <div className="p-4">
-              <Bar data={consultaData} />
-            </div>
+            <Card title="Clientes con más contratos" w="w-[90%] lg:w-[35%]">
+              <Pie data={clientesData} />
+            </Card>
+          </div>
+
+          <Card title="Consulta por vendedor" w="w-[90%] lg:w-[50%] mx-auto text-center">
+            <select
+              className="border rounded-lg px-4 py-2 mb-4"
+              value={vendedorSel || ""}
+              onChange={(e) => setVendedorSel(e.target.value)}
+            >
+              <option value="">Seleccionar vendedor</option>
+              {vendedores.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+
+            {vendedorData && (
+              <div className="text-sm text-gray-700 mt-2">
+                <p>Contratos: {vendedorData.totalContratos}</p>
+                <p>Valor total: ${vendedorData.valorTotal.toLocaleString()}</p>
+              </div>
+            )}
           </Card>
-        </div>
+        </>
       )}
-
-      <footer className="text-center text-sm text-gray-500 mt-10">
-        Dashboard UMD — Conectado a MongoDB Atlas y Render ⚙️
-      </footer>
     </div>
   );
 }
