@@ -22,4 +22,4 @@ const ContratoSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("Contrato", ContratoSchema);
+export default mongoose.model("Contrato", ContratoSchema, "Contrato");

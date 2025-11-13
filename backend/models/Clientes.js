@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const ClienteSchema = new mongoose.Schema({
+    Clientes: {
     NombreCliente: String,
     TipoDocumento: String,
     NumeroDocumento: String,
@@ -9,6 +10,7 @@ const ClienteSchema = new mongoose.Schema({
     Email: String,
     Telefono: String,
     Direccion: String,
+}
 });
 
-export default mongoose.model("Cliente", ClienteSchema);
+export default mongoose.model("Cliente", ClienteSchema, "Cliente");
