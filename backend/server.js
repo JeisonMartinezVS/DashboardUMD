@@ -1,34 +1,30 @@
-// backend/server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import Sale from "./models/Sale.js";
+import dotenv from "dotenv";
+import Cliente from "./models/Clientes.js";
+import Contrato from "./models/Contrato.js";
+import Geografia from "./models/Geografia.js";
+import Organizacion from "./models/Organizacion.js";
+import Servicio from "./models/Servicio.js";
 
+dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔗 Conexión a MongoDB Atlas (reemplaza con tu conexión)
+// 🔗 Conexión a MongoDB Atlas
 mongoose
-  .connect("mongodb+srv://yeisonaml1117_db_user:31p1L1uKFVmpwW2P@dashboardumd.hpmmvdr.mongodb.net/")
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
   .catch((err) => console.error("❌ Error conectando MongoDB:", err));
 
-// Ruta para insertar datos de prueba (ejecuta una sola vez)
-app.get("/api/seed", async (req, res) => {
-  await Sale.deleteMany({});
-  await Sale.insertMany([
-    { product: "Producto D", quantity: 50, month: "Abril" },
-    { product: "Producto E", quantity: 10, month: "Mayo" },
-  ]);
-  res.send("Datos insertados 2");
-});
+// 🔹 Rutas por colección
+app.get("/api/clientes", async (_, res) => res.json(await Cliente.find()));
+app.get("/api/contratos", async (_, res) => res.json(await Contrato.find()));
+app.get("/api/geografia", async (_, res) => res.json(await Geografia.find()));
+app.get("/api/organizacion", async (_, res) => res.json(await Organizacion.find()));
+app.get("/api/servicios", async (_, res) => res.json(await Servicio.find()));
 
-// Ruta para obtener datos
-app.get("/api/sales", async (req, res) => {
-  const sales = await Sale.find();
-  res.json(sales);
-});
-
-const PORT = 5000;
-app.listen(PORT, () => console.log(`🚀 Servidor backend en http://localhost:${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Backend corriendo en puerto ${PORT}`));
